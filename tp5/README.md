@@ -361,7 +361,8 @@ LISTEN 0      128             [::]:22           [::]:*    users:(("sshd",pid=695
 [root@routeur ~]# dnf install dhcp
 [root@routeur ~]# dnf -y install dhcp-server
 [root@routeur ~]# sudo nano dhcpd.conf
-````
+```
+
 ```
 }# specify DNS server's hostname or IP address
 option domain-name-servers  1.1.1.1;
@@ -374,7 +375,8 @@ subnet 10.5.1.0 netmask 255.255.255.0 {
     # specify gateway
     option routers 10.5.1.254;
 }
-````
+```
+
 ```
 [root@routeur ~]# sudo systemctl restart dhcpd
 ```
