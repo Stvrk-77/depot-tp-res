@@ -194,6 +194,8 @@ rtt min/avg/max/mdev = 0.035/0.050/0.056/0.008 ms
 > *Sur `client1.tp7.b1`.*
 
 🌞 **Capture `tcp_http.pcap`**
+```vboxuser@client1:~$ sudo tcpdump -w tcp_https.pcap -i enp0s8``` 
+
 
 - **capturer une session TCP complète**
   - le début (SYN, SYN ACK, ACK)
@@ -309,6 +311,9 @@ success
 ➜ **Tu devrais pouvoir visiter `https://sitedefou.tp7.b1` (bien `https` avec le 's')**
 
 🌞 **Capture `tcp_https.pcap`**
+```
+vboxuser@client1:~$ sudo tcpdump -w tcp_https.pcap -i enp0s8
+```
 
 - **capturer une session TCP complète**
   - le début (SYN, SYN ACK, ACK)
@@ -406,15 +411,39 @@ sudo systemctl start wg-quick@wg0
 ```
 
 🌞 **Prouvez que vous avez bien une nouvelle carte réseau `wg0`**
-
-- elle doit porter l'adresse IP indiquée dans le fichier de conf
-
+```
+[root@vpn]# ip a
+4: wg0: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/none
+    inet 10.7.200.1/24 scope global wg0
+       valid_lft forever preferred_lft forever
+```
 🌞 **Déterminer sur quel port écoute Wireguard**
 
-- avec une commande adaptée
-- isolez la ligne intéressante
+```
+[root@vpn]# ss -lnpu | grep 51820
+UNCONN 0      0            0.0.0.0:51820      0.0.0.0:*
+UNCONN 0      0               [::]:51820         [::]:*
+```
 
 🌞 **Ouvrez ce port dans le firewall**
+``` 
+[root@vpn matheo]# sudo firewall-cmd --list-all
+public (active)
+  target: default
+  icmp-block-inversion: no
+  interfaces: enp0s8 enp0s9
+  sources:
+  services: cockpit dhcpv6-client ssh
+  ports: 51820/udp
+  protocols:
+  forward: yes
+  masquerade: no
+  forward-ports:
+  source-ports:
+  icmp-blocks:
+  rich rules:
+  ```
 
 ➜ **Enfin, activez le routage avec** :
 
@@ -510,18 +539,31 @@ sudo wg show
 
 🌞 **Ping ping ping !**
 
-- depuis le client, faites un `ping` vers l'IP du serveur VPN au sein du réseau virtuel
-- donc `ping 10.7.200.1`
+```
+vboxuser@client1:~$ ping 10.7.200.1
+PING 10.7.200.1 (10.7.200.1) 56(84) bytes of data.
+64 bytes from 10.7.200.1: icmp_seq=1 ttl=64 time=0.601 ms
+64 bytes from 10.7.200.1: icmp_seq=2 ttl=64 time=0.618 ms
+64 bytes from 10.7.200.1: icmp_seq=3 ttl=64 time=1.61 ms
+^C
+--- 10.7.200.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2050ms
+rtt min/avg/max/mdev = 0.601/0.941/1.606/0.469 ms```
+
+```
 
 🌞 **Capture `ping1_vpn.pcap`**
 
-- capturez ces pings, en capturant sur l'interface host-ononly
-- ne vous attendez pas à vraiment voir directement des pings... vous regardez du trafic VPN
+```
+vboxuser@client1:~$ sudo tcpdump -w ping1_vpn.pcap -i enp0s8
+```
 
 🌞 **Capture `ping2_vpn.pcap`**
 
-- capturez ces pings, en capturant sur l'interface `wg0`
-- vous allez voir vos vrais `ping`
+```
+vboxuser@client1:~$ sudo tcpdump -w ping2_vpn.pcap -i enp0s8
+
+```
 
 ➜ **Sur le [`client1.tp7.b1`**](`client1.tp7.b1`**.md)
 
@@ -537,10 +579,12 @@ sudo ip route add default via 10.7.200.1
 
 🌞 **Prouvez que vous avez toujours un accès internet**
 
-- mais on va pas utiliser `ping`
-- vous allez utiliser `traceroute`
-- l'avantage, c'est que lui, il affiche tous les intermédiaires entre vous et la destination
-- `traceroute 1.1.1.1` dans le compte-rendu
+``` 
+root@client1:# ip route
+default via 10.7.200.1 dev wg0
+10.7.1.0/24 dev enp0s8 proto kernel scope link src 10.7.1.101 metric 100
+10.7.200.0/24 dev wg0 proto kernel scope link src 10.7.200.11
+```
 
 > On devrait voir que pour aller sur internet, vous passez par le serveur VPN.
 
@@ -561,10 +605,7 @@ Pour ce faire :
 
 🌞 **Visitez le service Web à travers le VPN**
 
-- site web privé accessible uniquement à ceux qui sont connectés au VPN
-- `curl https://sitedefou.tp7.b1` en ayant modifié votre fichier hosts pour que pointe vers `10.7.200.37`
-
-Et on a donc *virtuellement* obtenu ce réseau LAN :
-
-![VPN be like](./img/vpn.svg)
-
+```
+vboxuser@client1:~$ curl https://sitedefou.tp7.b1 -k
+meow !
+```
